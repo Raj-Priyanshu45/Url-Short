@@ -1,0 +1,9 @@
+spring:
+  application:
+    name: Url-Shortner
+
+
+Jwt:
+  Secret: "${Secret}"
+  Exp: "${ExpTime}"
+  Res-Exp: "${Refresh-Exp}"
