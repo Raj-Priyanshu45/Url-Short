@@ -5,7 +5,10 @@ import org.springframework.stereotype.Repository;
 
 import com.self.authService.model.Users;
 
+import java.util.Optional;
+
 @Repository 
-public interface AuthRepo extends JpaRepository<String , Users>{
-    
+public interface AuthRepo extends JpaRepository<Users , String>{
+
+    Optional<Users> findByEmail(String email);
 }

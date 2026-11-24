@@ -6,4 +6,7 @@ spring:
 Jwt:
   Secret: "${Secret}"
   Exp: "${ExpTime}"
-  Res-Exp: "${Refresh-Exp}"
+  Ref-Exp: "${Refresh-Exp}"
+
+App:
+  Frontend: "${FrontendUri}"

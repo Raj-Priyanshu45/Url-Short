@@ -12,6 +12,7 @@ import org.hibernate.annotations.UuidGenerator;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 public class Users {
 
     @Id
