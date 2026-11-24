@@ -12,7 +12,7 @@ import java.time.Duration;
 @Component
 public class SetCookies {
 
-    @Value("${Jwt.Exp}")
+    @Value("${Jwt.access-token-ttl-ms}")
     private long ExpTime;
 
     @Value("${Jwt.Ref-Exp}")

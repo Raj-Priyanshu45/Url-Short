@@ -1,6 +1,7 @@
 package com.self.authService.jwt;
 
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.Cookie;
@@ -33,28 +34,40 @@ public class JwtFilter extends OncePerRequestFilter {
 
         if (token == null) {
             filterChain.doFilter(request , response);
+            return;
         }
 
-        Claims claims = jwtCreation.parse(token);
+        try {
+            Claims claims = jwtCreation.parse(token);
 
-        String userid = claims.getSubject();
-        String role = claims.get("Role" , String.class);
-        String provider = claims.get("Provider" , String.class);
-        String email = claims.get("Email_Verified" , String.class);
+            String userid = claims.getSubject();
+            String role = claims.get("Role", String.class);
+            String provider = claims.get("Provider", String.class);
+            Boolean emailVerified = claims.get("Email_Verified", Boolean.class);
 
-        List<GrantedAuthority> grantedAuthorityList = new ArrayList<>();
-        grantedAuthorityList.add(new SimpleGrantedAuthority("ROLE_" + role));
-        grantedAuthorityList.add(new SimpleGrantedAuthority("PROVIDER_"+provider));
-        grantedAuthorityList.add(new SimpleGrantedAuthority("EMAIL_"+email));
+            if (userid == null || role == null ||
+                    provider == null || emailVerified == null) {
+                throw new JwtException("Required JWT claims are missing");
+            }
 
-        Authentication authentication = new UsernamePasswordAuthenticationToken(
-                userid ,
-                null ,
-                grantedAuthorityList
-        );
+            List<GrantedAuthority> grantedAuthorityList = new ArrayList<>();
+            grantedAuthorityList.add(new SimpleGrantedAuthority("ROLE_" + role));
+            grantedAuthorityList.add(new SimpleGrantedAuthority("PROVIDER_" + provider));
+            grantedAuthorityList.add(new SimpleGrantedAuthority(
+                    Boolean.TRUE.equals(emailVerified) ? "EMAIL_VERIFIED" : "EMAIL_UNVERIFIED"
+            ));
 
-        SecurityContextHolder.getContext().setAuthentication(authentication);
+            Authentication authentication = new UsernamePasswordAuthenticationToken(
+                    userid,
+                    null,
+                    grantedAuthorityList
+            );
 
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+        }
+        catch (IllegalArgumentException | JwtException ex) {
+            SecurityContextHolder.clearContext();
+        }
         filterChain.doFilter(request , response);
     }
 

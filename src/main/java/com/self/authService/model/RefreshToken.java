@@ -1,9 +1,7 @@
 package com.self.authService.model;
 
 import com.self.authService.enums.TokenType;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.Id;
+import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.UuidGenerator;
 
@@ -23,6 +21,7 @@ public class RefreshToken {
     private String id;
     private String token;
     private LocalDateTime expTime;
+    @Enumerated(EnumType.STRING)
     private TokenType type;
     private String userId;
 

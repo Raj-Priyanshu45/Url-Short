@@ -4,9 +4,13 @@ spring:
 
 
 Jwt:
-  Secret: "${Secret}"
-  Exp: "${ExpTime}"
+  issuer: "${issuer}"
+  audience: "${audience}"
   Ref-Exp: "${Refresh-Exp}"
+  private-key-location: "${private-key-location}"
+  public-key-location: "${public-key-location}"
+  access-token-ttl-ms: "${access-token-ttl-ms}"
 
 App:
   Frontend: "${FrontendUri}"
+  MaxAge: "${MaxAge}"

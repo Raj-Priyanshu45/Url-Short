@@ -46,14 +46,13 @@ public class OAuth2LoginHandler extends SimpleUrlAuthenticationSuccessHandler {
 
         OAuth2User oAuth2User = (OAuth2User) authentication.getPrincipal();
 
-        OAuth2AuthenticationToken token = (OAuth2AuthenticationToken) authentication;
-
         String email = oAuth2User.getAttribute("email");
 
         if (email == null || email.isBlank()) {
             response.sendRedirect(
                     frontend + "/login?error=email_unavailable"
             );
+            return;
         }
 
         Users user = authRepo.findByEmail(email).orElse(null);

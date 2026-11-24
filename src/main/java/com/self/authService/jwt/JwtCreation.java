@@ -3,7 +3,9 @@ package com.self.authService.jwt;
 import com.self.authService.model.Users;
 import com.self.authService.repo.AuthRepo;
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtParser;
 import io.jsonwebtoken.Jwts;
+import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 
@@ -12,8 +14,10 @@ import jakarta.annotation.PostConstruct;
 import org.springframework.stereotype.Component;
 
 import java.nio.charset.StandardCharsets;
+import java.security.KeyPair;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.time.Instant;
 import java.util.Base64;
 import java.util.Date;
 import java.util.UUID;
@@ -23,32 +27,51 @@ import javax.crypto.SecretKey;
 @RequiredArgsConstructor
 public class JwtCreation {
 
-    @Value("Jwt.Secret")
-    private String Secret;
+    private final KeyPair keyPair;
 
-    @Value("Jwt.Exp")
-    private long ExpTime;
+    @Value("${Jwt.issuer}")
+    private String issuer;
 
-    private SecretKey secretKey;
+    @Value("${Jwt.audience}")
+    private String audience;
+
+    @Value("${Jwt.access-token-ttl-ms}")
+    private long accessTokenTtl;
+
+    private JwtParser jwtParser;
 
     private final AuthRepo authRepo;
 
     @PostConstruct
-    void init(){
-        secretKey = Keys.hmacShaKeyFor(Base64.getDecoder().decode(Secret));
+    void init() {
+        jwtParser = Jwts.parser()
+                .verifyWith(keyPair.getPublic())
+                .requireIssuer(issuer)
+                .requireAudience(audience)
+                .build();
     }
 
+
     public String generateAccessToken(Users user) {
-        long Exp = ExpTime;
+
+        Instant instant = Instant.now();
 
         return Jwts.builder()
+                .issuer(issuer)
                 .subject(user.getUserId())
+                .audience()
+                .add(audience)
+                .and()
+                .issuedAt(Date.from(Instant.now()))
+                .expiration(Date.from(Instant.now().plusMillis(accessTokenTtl)))
+                .id(UUID.randomUUID().toString())
                 .claim("Role" , user.getRoles().name())
                 .claim("Provider" , user.getProvider().name())
                 .claim("Email_Verified" , user.isEmailVerified())
-                .issuedAt(new Date())
-                .expiration(new Date(System.currentTimeMillis() + Exp))
-                .signWith(secretKey)
+                .signWith(
+                        keyPair.getPrivate() ,
+                        Jwts.SIG.RS256
+                )
                 .compact();
     }
 
@@ -73,9 +96,8 @@ public class JwtCreation {
     }
 
     public Claims parse(String token) {
-        return Jwts.parser()
-                .verifyWith(secretKey)
-                .build()
+
+        return jwtParser
                 .parseSignedClaims(token)
                 .getPayload();
     }
