@@ -32,7 +32,7 @@ import java.util.Locale;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class AuthServices {
+public class  AuthServices {
 
     private final AuthRepo authRepo;
     private final PasswordEncoder passwordEncoder;
@@ -135,28 +135,47 @@ public class AuthServices {
         setCookies.setCookies(response, accessToken, refreshToken);
     }
 
-    public boolean rotateRefreshToken(HttpServletRequest request , HttpServletResponse response) {
+    @Transactional
+    public boolean rotateRefreshToken(
+            HttpServletRequest request,
+            HttpServletResponse response
+    ) {
 
-        String refresh = jwtFilter.extractCookie(request , "REFRESH");
+        String refresh = jwtFilter.extractCookie(
+                request, "REFRESH"
+        );
 
-        if (refresh == null) return false;
+        if (refresh == null || refresh.isBlank()) {
+            return false;
+        }
 
-        RefreshToken token = tokenRepo.findByTokenAndType(
-                jwtCreation.hashRefreshToken(refresh) ,
-                 TokenType.REFRESH).orElse(null);
+        String hash = jwtCreation.hashRefreshToken(refresh);
 
-        if (token == null) return false;
+        RefreshToken token = tokenRepo.findByTokenForUpdate(
+                hash,
+                TokenType.REFRESH
+        ).orElse(null);
+
+        if (token == null) {
+            return false;
+        }
 
         if (!token.getExpTime().isAfter(Instant.now())) {
             tokenRepo.delete(token);
             return false;
         }
 
+        Users user = authRepo.findById(token.getUserId())
+                .orElse(null);
+
+        if (user == null) {
+            tokenRepo.delete(token);
+            return false;
+        }
+
         tokenRepo.delete(token);
 
-        Users user = authRepo.findByUserId(token.getUserId());
-
-        setTokens(response , user);
+        setTokens(response, user);
 
         return true;
     }

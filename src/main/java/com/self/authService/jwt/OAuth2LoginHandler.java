@@ -19,7 +19,8 @@ import org.springframework.security.web.authentication.SimpleUrlAuthenticationSu
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
-import java.time.LocalDateTime;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Locale;
 import java.util.UUID;
 
@@ -49,7 +50,7 @@ public class OAuth2LoginHandler extends SimpleUrlAuthenticationSuccessHandler {
         OidcUser oidcUser = (OidcUser) authentication.getPrincipal();
 
         String googleSub = oidcUser.getSubject();
-        String email = oidcUser.getEmail().trim().toLowerCase(Locale.ROOT);
+        String email = oidcUser.getEmail();
 
         Boolean emailVerified = oidcUser.getEmailVerified();
 
@@ -90,7 +91,7 @@ public class OAuth2LoginHandler extends SimpleUrlAuthenticationSuccessHandler {
             }
 
             Users newUser = Users.builder()
-                    .email(email)
+                    .email(email.trim().toLowerCase(Locale.ROOT))
                     .emailVerified(true)
                     .roles(Roles.USER)
                     .username(UUID.randomUUID().toString())
@@ -121,7 +122,7 @@ public class OAuth2LoginHandler extends SimpleUrlAuthenticationSuccessHandler {
                         .token(hashRefreshToken)
                         .type(TokenType.REFRESH)
                         .userId(user.getUserId())
-                        .expTime(LocalDateTime.now().plusDays(ExpTime))
+                        .expTime(Instant.now().plus(ExpTime , ChronoUnit.DAYS))
                         .build()
         );
 

@@ -18,7 +18,4 @@ public interface AuthRepo extends JpaRepository<Users , String>{
 
     Boolean existsByUsername(String username);
 
-    Users findByUserId(String userId);
-
-    boolean existsByUserId(String userId);
 }
