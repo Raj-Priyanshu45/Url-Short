@@ -93,6 +93,7 @@ public class OAuth2LoginHandler extends SimpleUrlAuthenticationSuccessHandler {
                     .emailVerified(true)
                     .roles(Roles.USER)
                     .username(UUID.randomUUID().toString())
+                    .passwordHash(UUID.randomUUID().toString())
                     .build();
 
             authRepo.save(newUser);

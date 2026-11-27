@@ -18,7 +18,9 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -27,6 +29,7 @@ import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class AuthServices {
 
     private final AuthRepo authRepo;
@@ -147,5 +150,25 @@ public class AuthServices {
         setTokens(response , user);
 
         return true;
+    }
+
+    @Transactional
+    public void logout(HttpServletResponse response , String userId) {
+
+        tokenRepo.findByUserId(userId).ifPresent(tokenRepo::delete);
+
+        setCookies.clearCookies(response);
+    }
+
+    @Scheduled(cron = "0 0 2 * * *", zone = "UTC")
+    @Transactional
+    public void cleanupExpiredTokens() {
+
+        log.info("Starting expired refresh token cleanup");
+
+        tokenRepo
+                .deleteAllByExpTimeBefore(LocalDateTime.now());
+
+        log.info("Expired refresh token cleanup completed");
     }
 }

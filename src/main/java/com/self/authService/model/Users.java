@@ -16,7 +16,7 @@ import org.hibernate.annotations.UuidGenerator;
         name = "User_table" ,
         uniqueConstraints = {
                 @UniqueConstraint(
-                        columnNames = { "email" , "username" }
+                        columnNames = "email"
                 )
         }
 )
