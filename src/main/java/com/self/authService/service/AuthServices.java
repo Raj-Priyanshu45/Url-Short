@@ -25,7 +25,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
-import java.time.LocalDateTime;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.Locale;
 
 @Service
 @RequiredArgsConstructor
@@ -55,7 +57,11 @@ public class AuthServices {
 
         if (user == null) return LoginReqStatus.User_does_not_exists;
 
-        if (user.getPasswordHash().isEmpty()) return LoginReqStatus.Account_not_linked;
+        String passwordHash = user.getPasswordHash();
+
+        if (passwordHash == null || passwordHash.isBlank()) {
+            return LoginReqStatus.Account_not_linked;
+        }
 
         if (!passwordEncoder.matches(
                 password ,
@@ -87,7 +93,7 @@ public class AuthServices {
         Users user = Users.builder()
                 .username(registration.username())
                 .roles(Roles.USER)
-                .email(registration.email())
+                .email(registration.email().trim().toLowerCase(Locale.ROOT))
                 .passwordHash(
                         passwordEncoder.encode(registration.password())
                 )
@@ -119,7 +125,7 @@ public class AuthServices {
 
 
         RefreshToken token = RefreshToken.builder()
-                .expTime(LocalDateTime.now().plusDays(expTime))
+                .expTime(Instant.now().plus(expTime , ChronoUnit.DAYS))
                 .userId(user.getUserId())
                 .type(TokenType.REFRESH)
                 .token(refreshTokenHash)
@@ -141,7 +147,10 @@ public class AuthServices {
 
         if (token == null) return false;
 
-        if (token.getExpTime().isBefore(LocalDateTime.now())) return false;
+        if (!token.getExpTime().isAfter(Instant.now())) {
+            tokenRepo.delete(token);
+            return false;
+        }
 
         tokenRepo.delete(token);
 
@@ -153,9 +162,22 @@ public class AuthServices {
     }
 
     @Transactional
-    public void logout(HttpServletResponse response , String userId) {
+    public void logout(
+            HttpServletRequest request,
+            HttpServletResponse response
+    ) {
 
-        tokenRepo.findByUserId(userId).ifPresent(tokenRepo::delete);
+        String refresh = jwtFilter.extractCookie(request, "REFRESH");
+
+        if (refresh != null && !refresh.isBlank()) {
+
+            String hash = jwtCreation.hashRefreshToken(refresh);
+
+            tokenRepo.deleteByTokenAndType(
+                    hash,
+                    TokenType.REFRESH
+            );
+        }
 
         setCookies.clearCookies(response);
     }
@@ -167,7 +189,7 @@ public class AuthServices {
         log.info("Starting expired refresh token cleanup");
 
         tokenRepo
-                .deleteAllByExpTimeBefore(LocalDateTime.now());
+                .deleteAllByExpTimeBefore(Instant.now());
 
         log.info("Expired refresh token cleanup completed");
     }

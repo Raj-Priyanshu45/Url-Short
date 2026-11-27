@@ -20,6 +20,7 @@ import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
+import java.util.Locale;
 import java.util.UUID;
 
 @Component
@@ -48,7 +49,7 @@ public class OAuth2LoginHandler extends SimpleUrlAuthenticationSuccessHandler {
         OidcUser oidcUser = (OidcUser) authentication.getPrincipal();
 
         String googleSub = oidcUser.getSubject();
-        String email = oidcUser.getEmail();
+        String email = oidcUser.getEmail().trim().toLowerCase(Locale.ROOT);
 
         Boolean emailVerified = oidcUser.getEmailVerified();
 
@@ -93,7 +94,7 @@ public class OAuth2LoginHandler extends SimpleUrlAuthenticationSuccessHandler {
                     .emailVerified(true)
                     .roles(Roles.USER)
                     .username(UUID.randomUUID().toString())
-                    .passwordHash(UUID.randomUUID().toString())
+                    .passwordHash(null)
                     .build();
 
             authRepo.save(newUser);

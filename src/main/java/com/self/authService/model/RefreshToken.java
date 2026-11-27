@@ -5,6 +5,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.UuidGenerator;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 
 @Getter
@@ -19,10 +20,17 @@ public class RefreshToken {
     @UuidGenerator
     @GeneratedValue
     private String id;
+    @Column(nullable = false, unique = true, length = 64)
     private String token;
-    private LocalDateTime expTime;
+
+    @Column(nullable = false)
+    private Instant expTime;
+
     @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     private TokenType type;
+
+    @Column(nullable = false)
     private String userId;
 
 }

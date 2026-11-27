@@ -16,5 +16,7 @@ public interface TokenRepo extends JpaRepository<RefreshToken , String> {
 
     Optional<RefreshToken> findByUserId(String userId);
 
-    void deleteAllByExpTimeBefore(LocalDateTime expTime);
+    void deleteAllByExpTimeBefore(Instant expTime);
+
+    void deleteByTokenAndType(String hash, TokenType tokenType);
 }
