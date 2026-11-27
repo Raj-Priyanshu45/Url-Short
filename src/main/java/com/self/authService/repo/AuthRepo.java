@@ -13,4 +13,10 @@ public interface AuthRepo extends JpaRepository<Users , String>{
     Optional<Users> findByEmailIgnoreCase(String email);
 
     Boolean existsByEmailIgnoreCase(String email);
+
+    Optional<Users> findByUsername(String username);
+
+    Boolean existsByUsername(String username);
+
+    Users findByUserId(String userId);
 }
