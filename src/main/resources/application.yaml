@@ -2,6 +2,17 @@ spring:
   application:
     name: Url-Shortner
 
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: "${GOOGLE_CLIENT_ID:not-set}"
+            client-secret: "${GOOGLE_CLIENT_SECRET:not-set}"
+            scope:
+              - openid
+              - profile
+              - email
 
 Jwt:
   issuer: "${issuer}"

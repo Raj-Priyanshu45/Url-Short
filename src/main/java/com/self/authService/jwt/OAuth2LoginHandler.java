@@ -3,17 +3,18 @@ package com.self.authService.jwt;
 import com.self.authService.enums.Provider;
 import com.self.authService.enums.Roles;
 import com.self.authService.enums.TokenType;
-import com.self.authService.model.RefreshToken;
+import com.self.authService.model.UserIdentity;
 import com.self.authService.model.Users;
 import com.self.authService.repo.AuthRepo;
 import com.self.authService.repo.TokenRepo;
+import com.self.authService.repo.UserIdentityRepo;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.NonNull;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
+import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
@@ -30,6 +31,7 @@ public class OAuth2LoginHandler extends SimpleUrlAuthenticationSuccessHandler {
     private final JwtCreation jwtCreation;
     private final SetCookies setCookies;
     private final AuthRepo authRepo;
+    private final UserIdentityRepo identityRepo;
 
     @Value("${App.Frontend}")
     private String frontend;
@@ -44,9 +46,13 @@ public class OAuth2LoginHandler extends SimpleUrlAuthenticationSuccessHandler {
             @NonNull Authentication authentication
     ) throws IOException {
 
-        OAuth2User oAuth2User = (OAuth2User) authentication.getPrincipal();
+        OidcUser oidcUser = (OidcUser) authentication.getPrincipal();
 
-        String email = oAuth2User.getAttribute("email");
+        assert oidcUser != null;
+        String googleSub = oidcUser.getSubject();
+        String email = oidcUser.getEmail();
+
+        Boolean emailVerified = oidcUser.getEmailVerified();
 
         if (email == null || email.isBlank()) {
             response.sendRedirect(
@@ -55,17 +61,29 @@ public class OAuth2LoginHandler extends SimpleUrlAuthenticationSuccessHandler {
             return;
         }
 
-        Users user = authRepo.findByEmail(email).orElse(null);
+        Users user = authRepo.findByEmailIgnoreCase(email).orElse(null);
 
         if (user == null) {
             user = Users.builder()
                     .email(email)
-                    .emailVerified(true)
-                    .provider(com.self.authService.enums.Provider.Google)
-                    .roles(Roles.User)
+                    .emailVerified(emailVerified)
+                    .roles(Roles.USER)
                     .username(UUID.randomUUID().toString())
                     .build();
             authRepo.save(user);
+        }
+
+        UserIdentity userIdentity = identityRepo.findByProviderAndProviderSubject(
+                Provider.GOOGLE , googleSub).orElse(null);
+
+        if (userIdentity == null) {
+            userIdentity = UserIdentity.builder()
+                    .provider(Provider.GOOGLE)
+                    .providerSubject(googleSub)
+                    .user(user)
+                    .build();
+
+            identityRepo.save(userIdentity);
         }
 
         String AccessToken = jwtCreation.generateAccessToken(user);
@@ -77,7 +95,7 @@ public class OAuth2LoginHandler extends SimpleUrlAuthenticationSuccessHandler {
         tokenRepo.save(
                 com.self.authService.model.RefreshToken.builder()
                         .token(hashRefreshToken)
-                        .type(TokenType.RefreshToken)
+                        .type(TokenType.REFRESH)
                         .userId(user.getUserId())
                         .expTime(LocalDateTime.now().plusDays(ExpTime))
                         .build()

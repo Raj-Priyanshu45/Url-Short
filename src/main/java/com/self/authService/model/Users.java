@@ -24,8 +24,6 @@ public class Users {
     @Enumerated(EnumType.STRING)
     private Roles roles;
     private String email;
-    @Enumerated(EnumType.STRING)
-    private Provider provider;
     private boolean emailVerified;
     private String password;
 }

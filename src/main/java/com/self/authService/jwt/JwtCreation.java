@@ -1,15 +1,13 @@
 package com.self.authService.jwt;
 
 import com.self.authService.model.Users;
-import com.self.authService.repo.AuthRepo;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtParser;
 import io.jsonwebtoken.Jwts;
-import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 
-import io.jsonwebtoken.security.Keys;
+
 import jakarta.annotation.PostConstruct;
 import org.springframework.stereotype.Component;
 
@@ -21,7 +19,9 @@ import java.time.Instant;
 import java.util.Base64;
 import java.util.Date;
 import java.util.UUID;
-import javax.crypto.SecretKey;
+
+
+//codex resume 01a21778-4483-7eb2-b212-5da1f4e41839
 
 @Component
 @RequiredArgsConstructor
@@ -39,8 +39,6 @@ public class JwtCreation {
     private long accessTokenTtl;
 
     private JwtParser jwtParser;
-
-    private final AuthRepo authRepo;
 
     @PostConstruct
     void init() {
@@ -62,12 +60,11 @@ public class JwtCreation {
                 .audience()
                 .add(audience)
                 .and()
-                .issuedAt(Date.from(Instant.now()))
-                .expiration(Date.from(Instant.now().plusMillis(accessTokenTtl)))
+                .issuedAt(Date.from(instant))
+                .expiration(Date.from(instant.plusMillis(accessTokenTtl)))
                 .id(UUID.randomUUID().toString())
-                .claim("Role" , user.getRoles().name())
-                .claim("Provider" , user.getProvider().name())
-                .claim("Email_Verified" , user.isEmailVerified())
+                .claim("role" , user.getRoles().name())
+                .claim("email_verified" , user.isEmailVerified())
                 .signWith(
                         keyPair.getPrivate() ,
                         Jwts.SIG.RS256

@@ -32,7 +32,7 @@ public class JwtFilter extends OncePerRequestFilter {
 
         String token = extractCookie(request , "JWT");
 
-        if (token == null) {
+        if (token == null || token.isBlank()) {
             filterChain.doFilter(request , response);
             return;
         }
@@ -41,9 +41,9 @@ public class JwtFilter extends OncePerRequestFilter {
             Claims claims = jwtCreation.parse(token);
 
             String userid = claims.getSubject();
-            String role = claims.get("Role", String.class);
-            String provider = claims.get("Provider", String.class);
-            Boolean emailVerified = claims.get("Email_Verified", Boolean.class);
+            String role = claims.get("role", String.class);
+            String provider = claims.get("provider", String.class);
+            Boolean emailVerified = claims.get("email_verified", Boolean.class);
 
             if (userid == null || role == null ||
                     provider == null || emailVerified == null) {
@@ -63,7 +63,11 @@ public class JwtFilter extends OncePerRequestFilter {
                     grantedAuthorityList
             );
 
-            SecurityContextHolder.getContext().setAuthentication(authentication);
+            var context = SecurityContextHolder.createEmptyContext();
+
+            context.setAuthentication(authentication);
+
+            SecurityContextHolder.setContext(context);
         }
         catch (IllegalArgumentException | JwtException ex) {
             SecurityContextHolder.clearContext();

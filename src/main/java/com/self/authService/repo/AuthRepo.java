@@ -10,5 +10,5 @@ import java.util.Optional;
 @Repository 
 public interface AuthRepo extends JpaRepository<Users , String>{
 
-    Optional<Users> findByEmail(String email);
+    Optional<Users> findByEmailIgnoreCase(String email);
 }

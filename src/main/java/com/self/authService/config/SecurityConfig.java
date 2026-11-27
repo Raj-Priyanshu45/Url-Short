@@ -49,7 +49,14 @@ public class SecurityConfig {
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(
                         auth -> auth
-                                .requestMatchers("/auth/**").permitAll()
+                                .requestMatchers(
+                                        "/auth/csrf",
+                                        "/auth/register",
+                                        "/auth/login",
+                                        "/auth/refresh",
+                                        "/oauth2/**",
+                                        "/login/oauth2/**"
+                                ).permitAll()
                                 .anyRequest().authenticated()
                 )
                 .oauth2Login(auth -> auth.successHandler(handler))
@@ -84,7 +91,7 @@ public class SecurityConfig {
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
 
-        source.registerCorsConfiguration("/" , configuration);
+        source.registerCorsConfiguration("/**" , configuration);
 
         return source;
     }
