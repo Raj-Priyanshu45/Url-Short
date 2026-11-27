@@ -14,6 +14,7 @@ import org.springframework.security.config.annotation.web.configurers.CsrfConfig
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.client.web.HttpSessionOAuth2AuthorizationRequestRepository;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
@@ -59,7 +60,13 @@ public class SecurityConfig {
                                 ).permitAll()
                                 .anyRequest().authenticated()
                 )
-                .oauth2Login(auth -> auth.successHandler(handler))
+                .oauth2Login(auth -> auth
+                        .authorizationEndpoint(
+                                authorization -> authorization.authorizationRequestRepository(
+                                        new HttpSessionOAuth2AuthorizationRequestRepository()
+                                )
+                        )
+                        .successHandler(handler))
                 .exceptionHandling(exc -> exc
                         .authenticationEntryPoint(
                                 new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)
