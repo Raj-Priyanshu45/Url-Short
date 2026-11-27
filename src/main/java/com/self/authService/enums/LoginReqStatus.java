@@ -5,5 +5,6 @@ public enum LoginReqStatus {
     Unauthorized ,
     User_does_not_exists ,
     Invalid_request ,
-    User_already_exists
+    User_already_exists ,
+    Account_not_linked
 }

@@ -16,6 +16,7 @@ import com.self.authService.repo.TokenRepo;
 import com.self.authService.repo.UserIdentityRepo;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -42,6 +43,7 @@ public class AuthServices {
     @Value("${App.Frontend}")
     private String frontend;
 
+    @Transactional
     public LoginReqStatus login(HttpServletResponse response , String username , String password) {
 
         if (username.isBlank() || password.isEmpty()) return LoginReqStatus.Invalid_request;
@@ -49,6 +51,8 @@ public class AuthServices {
         Users user = authRepo.findByUsername(username).orElse(null);
 
         if (user == null) return LoginReqStatus.User_does_not_exists;
+
+        if (user.getPasswordHash().isEmpty()) return LoginReqStatus.Account_not_linked;
 
         if (!passwordEncoder.matches(
                 password ,
@@ -62,6 +66,7 @@ public class AuthServices {
         return LoginReqStatus.Success;
     }
 
+    @Transactional
     public LoginReqStatus registerUser(HttpServletResponse response , UserRegistration registration) throws IOException {
 
         if (registration.email().isEmpty()
@@ -109,7 +114,6 @@ public class AuthServices {
         String refreshToken = jwtCreation.rawRefreshToken();
         String refreshTokenHash = jwtCreation.hashRefreshToken(refreshToken);
 
-        setCookies.setCookies(response , accessToken , refreshToken);
 
         RefreshToken token = RefreshToken.builder()
                 .expTime(LocalDateTime.now().plusDays(expTime))
@@ -119,6 +123,7 @@ public class AuthServices {
                 .build();
 
         tokenRepo.save(token);
+        setCookies.setCookies(response, accessToken, refreshToken);
     }
 
     public boolean rotateRefreshToken(HttpServletRequest request , HttpServletResponse response) {
@@ -127,11 +132,15 @@ public class AuthServices {
 
         if (refresh == null) return false;
 
-        RefreshToken token = tokenRepo.findByTokenAndType(refresh , TokenType.REFRESH).orElse(null);
+        RefreshToken token = tokenRepo.findByTokenAndType(
+                jwtCreation.hashRefreshToken(refresh) ,
+                 TokenType.REFRESH).orElse(null);
 
         if (token == null) return false;
 
         if (token.getExpTime().isBefore(LocalDateTime.now())) return false;
+
+        tokenRepo.delete(token);
 
         Users user = authRepo.findByUserId(token.getUserId());
 
