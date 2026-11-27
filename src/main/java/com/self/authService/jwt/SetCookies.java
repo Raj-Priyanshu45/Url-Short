@@ -31,7 +31,7 @@ public class SetCookies {
         ResponseCookie refresh = ResponseCookie.from("REFRESH" , refreshToken)
                 .httpOnly(true)
                 .sameSite("Lax")
-                .path("/auth/refresh")
+                .path("/auth")
                 .maxAge(Duration.ofDays(RefreshExp))
                 .secure(true)
                 .build();

@@ -11,4 +11,6 @@ import java.util.Optional;
 public interface AuthRepo extends JpaRepository<Users , String>{
 
     Optional<Users> findByEmailIgnoreCase(String email);
+
+    Boolean existsByEmailIgnoreCase(String email);
 }

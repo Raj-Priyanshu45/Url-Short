@@ -42,17 +42,15 @@ public class JwtFilter extends OncePerRequestFilter {
 
             String userid = claims.getSubject();
             String role = claims.get("role", String.class);
-            String provider = claims.get("provider", String.class);
             Boolean emailVerified = claims.get("email_verified", Boolean.class);
 
             if (userid == null || role == null ||
-                    provider == null || emailVerified == null) {
+                    emailVerified == null) {
                 throw new JwtException("Required JWT claims are missing");
             }
 
             List<GrantedAuthority> grantedAuthorityList = new ArrayList<>();
             grantedAuthorityList.add(new SimpleGrantedAuthority("ROLE_" + role));
-            grantedAuthorityList.add(new SimpleGrantedAuthority("PROVIDER_" + provider));
             grantedAuthorityList.add(new SimpleGrantedAuthority(
                     Boolean.TRUE.equals(emailVerified) ? "EMAIL_VERIFIED" : "EMAIL_UNVERIFIED"
             ));

@@ -15,7 +15,6 @@ import org.jspecify.annotations.NonNull;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
-import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
 
@@ -48,7 +47,6 @@ public class OAuth2LoginHandler extends SimpleUrlAuthenticationSuccessHandler {
 
         OidcUser oidcUser = (OidcUser) authentication.getPrincipal();
 
-        assert oidcUser != null;
         String googleSub = oidcUser.getSubject();
         String email = oidcUser.getEmail();
 
@@ -61,36 +59,60 @@ public class OAuth2LoginHandler extends SimpleUrlAuthenticationSuccessHandler {
             return;
         }
 
-        Users user = authRepo.findByEmailIgnoreCase(email).orElse(null);
+        if (googleSub == null || googleSub.isBlank()) {
+            response.sendRedirect(
+                    frontend + "/login?error=invalid_google_request"
+            );
+            return;
+        }
 
-        if (user == null) {
-            user = Users.builder()
-                    .email(email)
-                    .emailVerified(emailVerified)
-                    .roles(Roles.USER)
-                    .username(UUID.randomUUID().toString())
-                    .build();
-            authRepo.save(user);
+        if (!Boolean.TRUE.equals(emailVerified)) {
+            response.sendRedirect(
+                    frontend + "/login?error=email_unverified"
+            );
+            return;
         }
 
         UserIdentity userIdentity = identityRepo.findByProviderAndProviderSubject(
                 Provider.GOOGLE , googleSub).orElse(null);
 
         if (userIdentity == null) {
+
+            Boolean existingUser = authRepo
+                    .existsByEmailIgnoreCase(email);
+
+            if (existingUser) {
+                response.sendRedirect(
+                        frontend + "/login?error=account_link_required"
+                );
+                return;
+            }
+
+            Users newUser = Users.builder()
+                    .email(email)
+                    .emailVerified(true)
+                    .roles(Roles.USER)
+                    .username(UUID.randomUUID().toString())
+                    .build();
+
+            authRepo.save(newUser);
+
             userIdentity = UserIdentity.builder()
                     .provider(Provider.GOOGLE)
                     .providerSubject(googleSub)
-                    .user(user)
+                    .user(newUser)
                     .build();
 
             identityRepo.save(userIdentity);
         }
 
-        String AccessToken = jwtCreation.generateAccessToken(user);
-        String RefreshToken = jwtCreation.rawRefreshToken();
-        String hashRefreshToken = jwtCreation.hashRefreshToken(RefreshToken);
+        Users user = userIdentity.getUser();
 
-        setCookies.setCookies(response , AccessToken , RefreshToken);
+        String accessToken = jwtCreation.generateAccessToken(user);
+        String refreshToken = jwtCreation.rawRefreshToken();
+        String hashRefreshToken = jwtCreation.hashRefreshToken(refreshToken);
+
+        setCookies.setCookies(response , accessToken , refreshToken);
 
         tokenRepo.save(
                 com.self.authService.model.RefreshToken.builder()

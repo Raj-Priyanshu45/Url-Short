@@ -1,6 +1,5 @@
 package com.self.authService.model;
 
-import com.self.authService.enums.Provider;
 import com.self.authService.enums.Roles;
 import jakarta.persistence.*;
 import lombok.*;
@@ -13,6 +12,14 @@ import org.hibernate.annotations.UuidGenerator;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@Table(
+        name = "User_table" ,
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        columnNames = "email"
+                )
+        }
+)
 public class Users {
 
     @Id
@@ -25,5 +32,5 @@ public class Users {
     private Roles roles;
     private String email;
     private boolean emailVerified;
-    private String password;
+    private String passwordHash;
 }
